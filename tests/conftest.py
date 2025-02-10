@@ -1,34 +1,18 @@
 import pytest
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
 from fastapi.testclient import TestClient
-from database import Base, SessionLocal, init_db
+from sqlalchemy.ext.asyncio import AsyncSession
 from main import app
+from database import init_db, get_db
+
 
 @pytest.fixture(scope="module")
-async def test_db():
-    engine = create_engine("sqlite+aiosqlite:///./test.db")
-    TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+async def test_app():
+    await init_db()
 
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
-
-    yield TestingSessionLocal
-
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+    yield TestClient(app)
 
 
-@pytest.fixture()
-def db(test_db):
-    db = test_db()
-    try:
-        yield db
-    finally:
-        db.close()
-
-
-@pytest.fixture()
-def client():
-    with TestClient(app) as c:
-        yield c
+@pytest.fixture(scope="function")
+async def db_session(test_app):
+    async with get_db() as session:  # Получаем сессию базы данных
+        yield session
