@@ -1,0 +1,29 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.egg
+*.egg-info/
+dist/
+build/
+.Python
+
+# Virtual environment
+venv/
+
+# PyCharm
+*.idea/
+
+# Определенные библиотеки
+*.DS_Store
+*.swp
+
+# Файлы конфиденциальной информации
+*.env
+.env.local
+.env.*.local
+
+# Miscellaneous
+*.log
+*.pot
