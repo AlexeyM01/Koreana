@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from config import settings
 from database import get_user, get_db
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
 
 async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession = Depends(get_db)):
@@ -32,13 +32,13 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: AsyncSession
         credentials = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
         username = credentials.get("sub")
         if username is None:
-            raise HTTPException(status_code=401, detail="Credentials not valid")
+            raise HTTPException(status_code=401, detail="Учетные данные недействительны")
 
         user = await get_user(db, username)
         if user is None:
-            raise HTTPException(status_code=401, detail="Invalid authentication credentials")
+            raise HTTPException(status_code=401, detail="Недействительные учетные данные аутентификации")
 
         return user
 
     except jwt.PyJWTError:
-        raise HTTPException(status_code=401, detail="Could not validate credentials")
+        raise HTTPException(status_code=401, detail="Не удалось проверить учетные данные")
