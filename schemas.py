@@ -15,31 +15,30 @@ class Priority(str, Enum):
     HIGH = "high"
 
 
-class UserCreate(BaseModel):
-    """Документация"""
+class UserBase(BaseModel):
+    """Базовая модель для пользователя, содержащая общие поля."""
     username: str
-    password: str
     email: EmailStr
 
 
-class UserUpdate(BaseModel):
-    """Документация"""
-    username: str
+class UserCreate(UserBase):
+    """Модель для создания пользователя на основе класса UserBase."""
     password: str
-    email: EmailStr
+
+
+class UserUpdate(UserBase):
+    """Модель для обновления информации о пользователе на основе класса UserBase."""
+    password: str
     additional_info: Optional[str] = None
     role_id: int
 
     class Config:
-        """Документация"""
         from_attributes = True
 
 
-class UserResponse(BaseModel):
-    """Документация"""
+class UserResponse(UserBase):
+    """Модель для ответа с информацией о пользователе на основе класса UserBase."""
     id: int
-    username: str
-    email: EmailStr
     role_id: int
     registered_at: datetime
     is_active: bool = True
@@ -47,24 +46,20 @@ class UserResponse(BaseModel):
     is_verified: bool = False
 
     class Config:
-        """Документация"""
         from_attributes = True
 
 
 class CommentCreate(BaseModel):
-    """Документация"""
     task_id: int
     content: str
 
 
 class TaskCreate(BaseModel):
-    """Документация"""
     title: str
     priority: Optional[Priority] = Priority.MEDIUM
 
 
 class TaskUpdate(BaseModel):
-    """Документация"""
     title: Optional[str] = None
     completed: Optional[bool] = None
     priority: Optional[Priority] = None
