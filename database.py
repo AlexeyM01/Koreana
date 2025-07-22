@@ -11,8 +11,8 @@ from config import settings
 
 Base = declarative_base()
 DATABASE_URL = settings.database_url
-engine = create_async_engine(DATABASE_URL, future=True, echo=True)
-SessionLocal = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
+engine = create_async_engine(DATABASE_URL, echo=True)
+async_session = sessionmaker(bind=engine, class_=AsyncSession, expire_on_commit=False)
 
 
 async def init_db():
@@ -31,8 +31,8 @@ async def get_db() -> AsyncSession:
     Returns:
         AsyncSession: Асинхронная сессия для работы с базой данных.
     """
-    async with SessionLocal() as db:
-        yield db
+    async with async_session() as session:
+        yield session
 
 
 async def get_user(db: AsyncSession, username: str):
@@ -47,7 +47,7 @@ async def get_user(db: AsyncSession, username: str):
         User: Объект пользователя, если найден, иначе None.
     """
     from models import User
-    result = await db.execute(select(User).filter(User.username == username))
+    result = await db.execute(select(User).where(User.username == username))
     user = result.scalars().first()
     return user
 
