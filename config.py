@@ -29,14 +29,16 @@ class Settings(BaseSettings):
     """
     secret_key: str = os.getenv("SECRET_KEY", "your_secret_key")
     algorithm: str = os.getenv("ALGORITHM", "HS256")
-    access_token_expire_minutes: int = os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30)
+    access_token_expire_minutes: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
     db_name: str = os.getenv("DB_NAME", "postgres")
     db_user: str = os.getenv("DB_USER", "postgres")
     db_password: str = os.getenv("DB_PASSWORD", "password")
     db_host: str = os.getenv("DB_HOST", "db")
-    db_port: int = os.getenv("DB_PORT", 5432)
+    db_port: int = int(os.getenv("DB_PORT", 5432))
 
-    redis_url: str = os.getenv("REDIS_URL", "redis://localhost")
+#    redis_url: str = os.getenv("REDIS_HOST", "redis://localhost")
+#    redis_password: str = os.getenv("REDIS_PASSWORD", "password")
+#    redis_port: int = 6379
 
     @property
     def database_url(self) -> str:
@@ -50,6 +52,7 @@ class Settings(BaseSettings):
     class Config:
         """Конфигурация Pydantic для загрузки переменных окружения из файла."""
         env_file = ".env"
+        env_file_encoding = 'utf-8'
 
 
 settings = Settings()
