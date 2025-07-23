@@ -26,11 +26,11 @@ ALGORITHM = settings.algorithm
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
 
 
-def create_access_token(data: dict):
+def create_access_token(username: str):
     """Функция для создания JWT токена"""
-    to_encode = data.copy()
+
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp": expire})
+    to_encode = {"exp": expire, "sub":username}
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
@@ -73,20 +73,23 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db),
                 response: Response = Response()):
     """Аутентификация и получение JWT токена"""
-    user = await get_user(db, form_data.username)
-    if not user or not pwd_context.verify(form_data.password, user.hashed_password):
-        raise HTTPException(status_code=401, detail="Неверное имя пользователя или пароль.")
+    try:
+        user = await get_user(db, form_data.username)
+        if not user or not pwd_context.verify(form_data.password, user.hashed_password):
+            raise HTTPException(status_code=401, detail="Неверное имя пользователя или пароль.")
 
-    access_token = create_access_token(user.username)
-    response.set_cookie(
-        key="access_token",
-        value=access_token,
-        httponly=True,
-        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-        samesite="lax",
-        secure=True
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
+        access_token = create_access_token(user.username)
+        response.set_cookie(
+            key="access_token",
+            value=access_token,
+            httponly=True,
+            max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+            samesite="lax",
+            secure=True
+        )
+        return {"access_token": access_token, "token_type": "bearer"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Ошибка {e}")
 
 
 @router.get("/me", response_model=UserResponse, summary="Получение информации текущего пользователя")

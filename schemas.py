@@ -60,6 +60,5 @@ class TaskCreate(BaseModel):
 
 
 class TaskUpdate(BaseModel):
-    title: Optional[str] = None
     completed: Optional[bool] = None
     priority: Optional[Priority] = None
