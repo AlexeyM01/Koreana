@@ -4,7 +4,7 @@ schemas.py
 Упрощает валидацию входящих данных для создания пользователей, комментариев и задач."""
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, EmailStr
 
 
@@ -44,6 +44,25 @@ class UserResponse(UserBase):
     is_active: bool = True
     is_superuser: bool = False
     is_verified: bool = False
+
+    class Config:
+        from_attributes = True
+
+
+class RoleCreate(BaseModel):
+    name: str
+    permissions: List[str] = []
+
+
+class RoleUpdate(BaseModel):
+    name: Optional[str] = None
+    permissions: Optional[List[str]] = None
+
+
+class RoleResponse(BaseModel):
+    id: int
+    name: str
+    permissions: List[str]
 
     class Config:
         from_attributes = True

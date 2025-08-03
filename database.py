@@ -46,6 +46,8 @@ async def get_user(db: AsyncSession, username: str):
     Returns:
         User: Объект пользователя, если найден, иначе None.
     """
+    # Не удалять импорт, возможна ошибка: ImportError: cannot import name 'User' from partially initialized module
+    # 'models' (most likely due to a circular import)
     from models import User
     result = await db.execute(select(User).where(User.username == username))
     user = result.scalars().first()

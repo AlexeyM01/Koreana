@@ -30,6 +30,7 @@ async def check_db_connection(db: AsyncSession = Depends(get_db)):
     except Exception as e:
         return HTMLResponse(status_code=500, content=f"Соединение с базой данных разорвано. Произошла ошибка {e}")
 
+
 @app.websocket("/ws/tasks/")
 async def websocket_endpoint(websocket: WebSocket):
     """Обрабатывает веб-сокет соединение для взаимодействия с клиентом"""
