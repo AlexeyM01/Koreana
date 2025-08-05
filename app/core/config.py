@@ -52,7 +52,7 @@ class Settings(BaseSettings):
 
     class Config:
         """Конфигурация Pydantic для загрузки переменных окружения из файла."""
-        env_file = "../../.env"
+        env_file = ".env"
         env_file_encoding = 'utf-8'
 
 

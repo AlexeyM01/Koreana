@@ -9,12 +9,13 @@ from jose import JWTError, jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
+
+from app.api.dependencies import get_current_user
 from app.models.models import User as UserModel
 from app.core.database import get_db
 from app.services.user_service import get_user
 from app.schemas.user_schemas import UserCreate, UserResponse, UserUpdate
 from app.core.config import settings
-from dependencies import get_current_user
 
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
