@@ -1,12 +1,11 @@
 """
-database.py
+app/core/database.py
 Устанавливает соединение с базой данных с помощью SQLAlchemy.
 Реализует асинхронную инициализацию базы данных, что подходит для высоконагруженных приложений.
 """
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
-from sqlalchemy.future import select
-from config import settings
+from app.core.config import settings
 
 
 Base = declarative_base()
@@ -35,21 +34,5 @@ async def get_db() -> AsyncSession:
         yield session
 
 
-async def get_user(db: AsyncSession, username: str):
-    """
-    Получает пользователя по имени пользователя из базы данных.
 
-    Args:
-        db (AsyncSession): Асинхронная сессия базы данных.
-        username (str): Имя пользователя для поиска.
-
-    Returns:
-        User: Объект пользователя, если найден, иначе None.
-    """
-    # Не удалять импорт, возможна ошибка: ImportError: cannot import name 'User' from partially initialized module
-    # 'models' (most likely due to a circular import)
-    from models import User
-    result = await db.execute(select(User).where(User.username == username))
-    user = result.scalars().first()
-    return user
 

@@ -1,15 +1,13 @@
 """
-models.py
-Определяет модель пользователя и включает роли, используя перечисления.
-Указание на важные поля, такие как hashed_password, is_active, is_superuser, и т.д.
-Основная логика управления пользователями должна быть дополнительно описана.
+app/models/models.py
+Определяет модели пользователя и пользовательских ролей.
 """
 from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import (TIMESTAMP, Boolean, Column, ForeignKey, Integer,
                         String, ARRAY)
-from database import Base
+from app.core.database import Base
 
 
 class User(Base):

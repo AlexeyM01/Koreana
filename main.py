@@ -7,9 +7,9 @@ import uvicorn
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import HTMLResponse
-from models import User as UserModel
-from database import init_db, get_db
-from auth import router as auth_router
+from app.models.models import User as UserModel
+from app.core.database import init_db, get_db
+from app.api.auth import router as auth_router
 
 app = FastAPI()
 app.include_router(auth_router)

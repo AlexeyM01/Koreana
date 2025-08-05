@@ -1,21 +1,20 @@
 """
-auth.py
+app/api/auth.py
 Реализует функции для регистрации и аутентификации пользователей с использованием JWT.
 """
 
 from fastapi import APIRouter, HTTPException, Depends, Response, Cookie
 from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from jose import JWTError, jwt
-from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
-from starlette.responses import HTMLResponse
-from models import User as UserModel, Role as RoleModel, Role
-from database import get_db, get_user
-from schemas import UserCreate, UserResponse, UserUpdate, RoleCreate, RoleUpdate, RoleResponse
-from config import settings
-from dependencies import get_current_user, check_permission
+from app.models.models import User as UserModel
+from app.core.database import get_db
+from app.services.user_service import get_user
+from app.schemas.user_schemas import UserCreate, UserResponse, UserUpdate
+from app.core.config import settings
+from dependencies import get_current_user
 
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -35,15 +34,6 @@ def create_access_token(username: str):
     to_encode = {"exp": expire, "sub": username}
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
-
-
-def verify_token(token: str):
-    """Функция для проверки JWT токена и возвращает полезную нагрузку, если верный токен"""
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload
-    except JWTError:
-        return None
 
 
 @router.post("/registration/", response_model=UserResponse, summary="Создание пользователя")
@@ -126,89 +116,3 @@ async def update_user_info(user_update: UserUpdate, current_user: UserModel = De
             return UserResponse.from_orm(current_user)
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Возникла ошибка {e}.")
-
-
-def permission_dependency(permission: str):
-    """Функция-фабрика для создания зависимостей разрешений."""
-
-    async def check_permission_dependency(current_user: UserModel = Depends(get_current_user),
-                                          db: AsyncSession = Depends(get_db)):
-        # Получаем роль пользователя по его role_id
-        result = await db.execute(select(Role).where(Role.id == current_user.role_id))
-        result = result.scalars().first()
-
-        if not result:
-            raise HTTPException(status_code=403, detail="Роль не найдена")
-        if permission not in result.permissions:
-            raise HTTPException(status_code=403, detail="Недостаточно прав")
-        return True
-
-    return check_permission_dependency
-
-
-@router.post("/roles/", response_model=RoleResponse)
-async def create_role(role: RoleCreate, db: AsyncSession = Depends(get_db),
-                      has_permission: bool = Depends(permission_dependency("manage_users"))):
-    """Создает новую роль с проверкой на разрешение"""
-    try:
-        db_role = RoleModel(**role.model_dump())
-        db.add(db_role)
-        await db.commit()
-        await db.refresh(db_role)
-        return RoleResponse.from_orm(db_role)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Произошла ошибка {e}")
-
-
-@router.get("/roles/{role_id}", response_model=RoleResponse)
-async def read_role(role_id: int, db: AsyncSession = Depends(get_db),
-                    has_permission: bool = Depends(permission_dependency("manage_users"))):
-    """Возвращает роль по ID с проверкой на разрешение"""
-    try:
-        from sqlalchemy import select
-        result = await db.execute(select(RoleModel).where(RoleModel.id == role_id))
-        role = result.scalars().first()
-        if role is None:
-            raise HTTPException(status_code=404, detail="Роль не найдена")
-        return RoleResponse.from_orm(role)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Произошла ошибка {e}")
-
-
-@router.put("/roles/{role_id}", response_model=RoleResponse)
-async def update_role(role_id: int, role: RoleUpdate, db: AsyncSession = Depends(get_db),
-                      has_permission: bool = Depends(permission_dependency("manage_users"))):
-    """Обновляет роль по ID"""
-    try:
-        from sqlalchemy import select
-        result = await db.execute(select(RoleModel).where(RoleModel.id == role_id))
-        db_role = result.scalars().first()
-        if db_role is None:
-            raise HTTPException(status_code=404, detail="Роль не найдена")
-
-        for key, value in role.model_dump(exclude_unset=True).items():
-            setattr(db_role, key, value)
-
-        await db.commit()
-        await db.refresh(db_role)
-        return RoleResponse.from_orm(db_role)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Произошла ошибка {e}")
-
-
-@router.delete("/roles/{role_id}", response_model=RoleResponse)
-async def delete_role(role_id: int, db: AsyncSession = Depends(get_db),
-                      has_permission: bool = Depends(permission_dependency("manage_users"))):
-    """Удаляет роль по ID."""
-    try:
-        from sqlalchemy import select
-        result = await db.execute(select(RoleModel).where(RoleModel.id == role_id))
-        db_role = result.scalars().first()
-
-        if db_role is None:
-            raise HTTPException(status_code=404, detail="Роль не найдена")
-        await db.delete(db_role)
-        await db.commit()
-        return RoleResponse.from_orm(db_role)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Произошла ошибка {e}")

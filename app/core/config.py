@@ -1,4 +1,5 @@
 """
+app/core/config.py
 Определяет настройки приложения с использованием Pydantic.
 Настройки включают секретные ключи, конфигурацию базы данных и Redis.
 Загружает переменные окружения из файла .env.
@@ -51,7 +52,7 @@ class Settings(BaseSettings):
 
     class Config:
         """Конфигурация Pydantic для загрузки переменных окружения из файла."""
-        env_file = ".env"
+        env_file = "../../.env"
         env_file_encoding = 'utf-8'
 
 
