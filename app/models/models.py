@@ -7,6 +7,7 @@ from typing import Optional
 
 from sqlalchemy import (TIMESTAMP, Boolean, Column, ForeignKey, Integer,
                         String, ARRAY)
+from sqlalchemy.orm import relationship
 from app.core.database import Base
 
 
@@ -24,6 +25,8 @@ class User(Base):
     is_verified: bool = Column(Boolean, default=False, nullable=False)
     additional_info: Optional[str] = Column(String, nullable=True)
 
+    refresh_tokens = relationship("RefreshToken", back_populates="user")
+
 
 class Role(Base):
     """Класс для определения таблицы ролей"""
@@ -39,3 +42,12 @@ class Role(Base):
     (5, 'MANAGER'),
     (6, 'OBSERVER')
     '''
+
+
+class RefreshToken(Base):
+    __tablename__ = "refresh_token"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("user.id"), nullable=False)
+    token = Column(String(length=255), nullable=False, unique=True)
+    expires_at = Column(TIMESTAMP, nullable=False)
+    user = relationship("User", back_populates="refresh_tokens")

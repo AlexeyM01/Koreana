@@ -3,8 +3,6 @@ app/utils/permissions.py
 """
 
 from fastapi import Depends, HTTPException
-from fastapi_users import jwt
-from jose import JWTError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,16 +14,6 @@ from app.models.models import User as UserModel, Role
 SECRET_KEY = settings.secret_key
 ALGORITHM = settings.algorithm
 ACCESS_TOKEN_EXPIRE_MINUTES = settings.access_token_expire_minutes
-
-
-def verify_token(token: str):
-    """Функция для проверки JWT токена и возвращает полезную нагрузку, если верный токен"""
-    # TO-DO Добавить проверку токенов в основную работу
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload
-    except JWTError:
-        return None
 
 
 def permission_dependency(permission: str):

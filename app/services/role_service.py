@@ -11,7 +11,7 @@ from app.models.models import Role as RoleModel
 from app.utils.permissions import permission_dependency
 
 router = APIRouter(prefix="/roles")
-# TO-DO Разделить логику от бизнес-задач
+# TODO Разделить логику от бизнес-задач
 
 
 @router.post("/", response_model=RoleResponse)

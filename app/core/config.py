@@ -16,7 +16,8 @@ class Settings(BaseSettings):
     Атрибуты:
         secret_key (str): Секретный ключ для JWT.
         algorithm (str): Алгоритм шифрования для токенов.
-        access_token_expire_minutes (int): Время жизни токена в минутах.
+        access_token_expire_minutes (int): Время жизни access токена в минутах.
+        refresh_token_expire_minutes (int): Время жизни refresh токена в минутах.
         db_name (str): Имя базы данных.
         db_user (str): Имя пользователя базы данных.
         db_password (str): Пароль пользователя базы данных.
@@ -31,6 +32,8 @@ class Settings(BaseSettings):
     secret_key: str = os.getenv("SECRET_KEY", "your_secret_key")
     algorithm: str = os.getenv("ALGORITHM", "HS256")
     access_token_expire_minutes: int = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
+    refresh_token_expire_minutes: int = int(os.getenv("REFRESH_TOKEN_EXPIRE_MINUTES", 60 * 24 * 30))  # 30 дней
+
     db_name: str = os.getenv("DB_NAME", "postgres")
     db_user: str = os.getenv("DB_USER", "postgres")
     db_password: str = os.getenv("DB_PASSWORD", "password")
