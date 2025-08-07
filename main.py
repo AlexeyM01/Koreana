@@ -11,6 +11,7 @@ from starlette.responses import HTMLResponse
 from app.models.models import User as UserModel
 from app.core.database import init_db, get_db
 from app.api.auth import router as auth_router
+from app.api.translate import router as translate_router
 
 app = FastAPI()
 app.add_middleware(
@@ -20,6 +21,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],)
 app.include_router(auth_router)
+app.include_router(translate_router)
 
 
 @app.on_event("startup")
