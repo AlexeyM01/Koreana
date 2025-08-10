@@ -28,7 +28,7 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(translate_router)
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("app")
 
 
 @app.on_event("startup")
@@ -56,6 +56,7 @@ async def websocket_endpoint(websocket: WebSocket):
         while True:
             data = await websocket.receive_text()
             await websocket.send_text(f"Текст сообщения: {data}")
+            logger.debug(f"Получено сообщение по WebSocket: {data}")
     except Exception as e:
         logger.exception(f"Ошибка вебсокета: {e}")
     finally:
@@ -82,4 +83,4 @@ async def general_exception_handler(request: Request, exc: Exception):
     )
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_level=logging.ERROR, reload=True)
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_level=logging.INFO, reload=True)
