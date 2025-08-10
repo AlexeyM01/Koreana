@@ -5,8 +5,9 @@ app/core/config.py
 Загружает переменные окружения из файла .env.
 """
 import os
-
 from pydantic_settings import BaseSettings
+from dotenv import load_dotenv
+load_dotenv()
 
 
 class Settings(BaseSettings):
@@ -42,10 +43,6 @@ class Settings(BaseSettings):
 
     yandex_translate_api_key: str = os.getenv("YANDEX_TRANSLATE_API_KEY")
     yandex_translate_folder_id: str = os.getenv("YANDEX_TRANSLATE_FOLDER_ID")
-
-#    redis_url: str = os.getenv("REDIS_HOST", "redis://localhost")
-#    redis_password: str = os.getenv("REDIS_PASSWORD", "password")
-#    redis_port: int = 6379
 
     @property
     def database_url(self) -> str:

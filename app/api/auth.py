@@ -2,6 +2,8 @@
 app/api/auth.py
 Реализует функции для регистрации и аутентификации пользователей с использованием JWT.
 """
+import logging
+import uuid
 
 from fastapi import APIRouter, HTTPException, Depends, Response, Cookie, status
 from fastapi.security import OAuth2PasswordRequestForm
@@ -10,7 +12,6 @@ from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
-import uuid
 
 from app.api.dependencies import get_current_user
 from app.models.models import User as UserModel, RefreshToken, User
@@ -19,6 +20,7 @@ from app.services.user_service import get_user
 from app.schemas.user_schemas import UserCreate, UserResponse, UserUpdate
 from app.core.config import settings
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -77,27 +79,32 @@ async def verify_refresh_token(db: AsyncSession, refresh_token: str) -> RefreshT
              response_model=UserResponse, summary="Создание пользователя")
 async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
     """Регистрация пользователя"""
-    async with db.begin():
-        existing_user = await get_user(db, user.username)
-        if existing_user:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
-                                detail="Пользователь с таким никнеймом уже зарегистирирован")
+    try:
+        async with db.begin():
+            existing_user = await get_user(db, user.username)
+            if existing_user:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                    detail="Пользователь с таким никнеймом уже зарегистирирован")
 
-        # Хэшируем пароль
-        hashed_password = pwd_context.hash(user.password)
-        new_user = UserModel(
-            username=user.username,
-            hashed_password=hashed_password,
-            registered_at=datetime.utcnow(),
-            email=user.email,
-            is_active=True,
-            is_superuser=False,
-            is_verified=False,
-        )
-        db.add(new_user)
-        await db.commit()
-        await db.refresh(new_user)
-        return UserResponse.from_orm(new_user)
+            # Хэшируем пароль
+            hashed_password = pwd_context.hash(user.password)
+            new_user = UserModel(
+                username=user.username,
+                hashed_password=hashed_password,
+                registered_at=datetime.utcnow(),
+                email=user.email,
+                is_active=True,
+                is_superuser=False,
+                is_verified=False,
+            )
+            db.add(new_user)
+            await db.commit()
+            await db.refresh(new_user)
+            return UserResponse.from_orm(new_user)
+    except Exception as e:
+        logger.exception(f"Ошибка при регистрации пользователя: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="Ошибка регистрации пользователя")
 
 
 @router.post("/login/")
@@ -130,19 +137,14 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSessi
         )
         return {"access_token": access_token, "token_type": "bearer"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Ошибка {e}")
+        logger.exception(f"Ошибка при входе пользователя: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ошибка авторизации")
 
 
 @router.get("/me", response_model=UserResponse, summary="Получение информации текущего пользователя")
 async def read_current_user(current_user: UserModel = Depends(get_current_user)):
     """Возвращает информацию о текущем пользователе."""
     return current_user
-
-
-@router.get("/secure-data")
-async def read_secure_data(current_user: UserModel = Depends(get_current_user)):
-    """Извлекает защищенные данные, проверяя токен из cookie-файла."""
-    return {"message": "Это безопасные данные.", "user": current_user.username}
 
 
 @router.put("/me", response_model=UserResponse, summary="Обновление информации пользователя")
@@ -164,7 +166,9 @@ async def update_user_info(user_update: UserUpdate, current_user: UserModel = De
             await db.refresh(current_user)
             return UserResponse.from_orm(current_user)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Возникла ошибка {e}.")
+        logger.exception(f"Ошибка при обновлении информации пользователя: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="Ошибка обновления информации пользователя")
 
 
 @router.get("/get_tokens")
@@ -212,4 +216,5 @@ async def refresh_token_endpoint(refresh_token: str = Cookie(None), db: AsyncSes
 
         return {"access_token": access_token, "token_type": "bearer"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Произошла ошибка {e}")
+        logger.exception(f"Ошибка при обновлении токена: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ошибка обновления токена")

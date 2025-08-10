@@ -2,16 +2,21 @@
 main.py
 Основной файл приложения FastAPI
 """
-from fastapi import FastAPI, WebSocket, Depends
+import logging
+from fastapi import FastAPI, WebSocket, Depends, Request, status
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from starlette.responses import HTMLResponse
+from starlette.responses import HTMLResponse, JSONResponse
 from app.models.models import User as UserModel
 from app.core.database import init_db, get_db
 from app.api.auth import router as auth_router
 from app.api.translate import router as translate_router
+from app.core.logger import configure_logging
+
+configure_logging()
 
 app = FastAPI()
 app.add_middleware(
@@ -22,6 +27,8 @@ app.add_middleware(
     allow_headers=["*"],)
 app.include_router(auth_router)
 app.include_router(translate_router)
+
+logger = logging.getLogger(__name__)
 
 
 @app.on_event("startup")
@@ -37,6 +44,7 @@ async def check_db_connection(db: AsyncSession = Depends(get_db)):
         await db.execute(select(UserModel).limit(1))
         return HTMLResponse(status_code=200, content="Соединение с базой данных успешно")
     except Exception as e:
+        logger.error(f"Ошибка соединения с базой данных: {e}")
         return HTMLResponse(status_code=500, content=f"Соединение с базой данных разорвано. Произошла ошибка {e}")
 
 
@@ -49,10 +57,29 @@ async def websocket_endpoint(websocket: WebSocket):
             data = await websocket.receive_text()
             await websocket.send_text(f"Текст сообщения: {data}")
     except Exception as e:
-        print(f"Возникла ошибка вебсокета: {e}")
+        logger.exception(f"Ошибка вебсокета: {e}")
     finally:
         await websocket.close()
 
 
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Обработчик ошибок валидации запроса (например, неверный тип данных)."""
+    logger.warning(f"Ошибка валидации запроса: {exc.errors()}")
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": exc.errors()},
+    )
+
+
+@app.exception_handler(Exception)
+async def general_exception_handler(request: Request, exc: Exception):
+    """Общий обработчик исключений.  Логирует ошибку и возвращает стандартный ответ."""
+    logger.exception(f"Произошла необработанная ошибка: {exc}")
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": "Произошла внутренняя ошибка сервера."},
+    )
+
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host="0.0.0.0", port=8000, log_level=logging.ERROR, reload=True)
