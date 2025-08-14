@@ -3,17 +3,20 @@ app/api/translate.py
 """
 import requests
 import logging
-from fastapi import APIRouter, HTTPException, status
+from fastapi import APIRouter, HTTPException, status, Request
 from typing import List
 
 from app.core.config import settings
+from app.core.rate_limiter import limiter
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/translate")
 
 
 @router.post("/")
-def translate(text: str | List[str], source_language_code: str = 'ko', target_language_code: str = 'ru'):
+@limiter.limit("30/minute")
+def translate(request: Request, text: str | List[str],
+              source_language_code: str = 'ko', target_language_code: str = 'ru'):
     try:
         if isinstance(text, str):
             text = [text]

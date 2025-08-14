@@ -4,10 +4,7 @@ app/services/user_services.py
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from app.core.exceptions import handle_all_exceptions
 
-
-@handle_all_exceptions
 async def get_user(db: AsyncSession, username: str):
     """
     Получает пользователя по имени пользователя из базы данных.

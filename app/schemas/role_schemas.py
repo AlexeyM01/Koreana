@@ -8,16 +8,19 @@ from typing import List, Optional
 
 
 class RoleCreate(BaseModel):
+    pass
     name: str
     permissions: List[str] = []
 
 
 class RoleUpdate(BaseModel):
+    pass
     name: Optional[str] = None
     permissions: Optional[List[str]] = None
 
 
 class RoleResponse(BaseModel):
+    pass
     id: int
     name: str
     permissions: List[str]

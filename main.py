@@ -5,8 +5,8 @@ main.py
 import logging
 from fastapi import FastAPI, WebSocket, Depends, Request, status
 from fastapi.exceptions import RequestValidationError
+from fastapi.middleware import Middleware
 from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.responses import HTMLResponse, JSONResponse
@@ -15,18 +15,25 @@ from app.core.database import init_db, get_db
 from app.api.auth import router as auth_router
 from app.api.translate import router as translate_router
 from app.core.logger import configure_logging
+from app.services.role_service import router as role_router
+from app.core.rate_limiter import limiter, init_rate_limiter
 
 configure_logging()
 
 app = FastAPI()
+
+init_rate_limiter(app)
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],)
+
 app.include_router(auth_router)
 app.include_router(translate_router)
+app.include_router(role_router)
 
 logger = logging.getLogger("app")
 
@@ -34,11 +41,15 @@ logger = logging.getLogger("app")
 @app.on_event("startup")
 async def startup_event():
     """Функция, выполняемая при запуске приложения fastapi"""
-    await init_db()
+    try:
+        await init_db()
+    except Exception as e:
+        print(f"ВАТАФАК {e}")
 
 
 @app.get("/db-status")
-async def check_db_connection(db: AsyncSession = Depends(get_db)):
+@limiter.limit("5/minute")
+async def check_db_connection(request: Request, db: AsyncSession = Depends(get_db)):
     """Функция-проверка соединения с базой данных"""
     try:
         await db.execute(select(UserModel).limit(1))
@@ -82,5 +93,3 @@ async def general_exception_handler(request: Request, exc: Exception):
         content={"detail": "Произошла внутренняя ошибка сервера."},
     )
 
-if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_level=logging.INFO, reload=True)

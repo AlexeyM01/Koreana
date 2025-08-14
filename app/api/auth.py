@@ -5,15 +5,16 @@ app/api/auth.py
 import logging
 import uuid
 
-from fastapi import APIRouter, HTTPException, Depends, Response, Cookie, status
+from fastapi import APIRouter, HTTPException, Depends, Response, Cookie, status, Request
 from fastapi.security import OAuth2PasswordRequestForm
-from jose import jwt
+import jwt
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime, timedelta
 from passlib.context import CryptContext
 
 from app.api.dependencies import get_current_user
+from app.core.rate_limiter import limiter
 from app.models.models import User as UserModel, RefreshToken, User
 from app.core.database import get_db
 from app.services.user_service import get_user
@@ -77,7 +78,8 @@ async def verify_refresh_token(db: AsyncSession, refresh_token: str) -> RefreshT
 
 @router.post("/registration/", status_code=status.HTTP_201_CREATED,
              response_model=UserResponse, summary="Создание пользователя")
-async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
+@limiter.limit("2/minute")
+async def register(request: Request, user: UserCreate, db: AsyncSession = Depends(get_db)):
     """Регистрация пользователя"""
     try:
         async with db.begin():
@@ -100,7 +102,7 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
             db.add(new_user)
             await db.commit()
             await db.refresh(new_user)
-            return UserResponse.from_orm(new_user)
+            return UserResponse.model_validate(new_user)
     except Exception as e:
         logger.exception(f"Ошибка при регистрации пользователя: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -108,7 +110,8 @@ async def register(user: UserCreate, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/login/")
-async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db),
+@limiter.limit("2/minute")
+async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSession = Depends(get_db),
                 response: Response = Response()):
     """Аутентификация и получение JWT токена"""
     try:
@@ -116,7 +119,7 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSessi
         if not user or not pwd_context.verify(form_data.password, user.hashed_password):
             raise HTTPException(status_code=401, detail="Неверное имя пользователя или пароль.")
 
-        access_token = create_access_token({"sub":user.username})
+        access_token = create_access_token({"sub": user.username})
         response.set_cookie(
             key="access_token",
             value=access_token,
@@ -138,18 +141,21 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: AsyncSessi
         return {"access_token": access_token, "token_type": "bearer"}
     except Exception as e:
         logger.exception(f"Ошибка при входе пользователя: {e}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Ошибка авторизации")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail=f"Ошибка авторизации. Подробнее: {e}")
 
 
-@router.get("/me", response_model=UserResponse, summary="Получение информации текущего пользователя")
-async def read_current_user(current_user: UserModel = Depends(get_current_user)):
+@router.get("/me", summary="Получение информации текущего пользователя")
+@limiter.limit("5/minute")
+async def read_current_user(request: Request, current_user: UserModel = Depends(get_current_user)):
     """Возвращает информацию о текущем пользователе."""
-    return current_user
+    return UserResponse.model_validate(current_user)
 
 
-@router.put("/me", response_model=UserResponse, summary="Обновление информации пользователя")
-async def update_user_info(user_update: UserUpdate, current_user: UserModel = Depends(get_current_user),
-                           db: AsyncSession = Depends(get_db)):
+@router.put("/me", summary="Обновление информации пользователя")
+@limiter.limit("2/minute")
+async def update_user_info(request: Request, user_update: UserUpdate,
+                           current_user: UserModel = Depends(get_current_user),db: AsyncSession = Depends(get_db)):
     """Обновляет информацию текущего пользователя"""
     try:
         async with db.begin():
@@ -164,7 +170,7 @@ async def update_user_info(user_update: UserUpdate, current_user: UserModel = De
 
             await db.commit()
             await db.refresh(current_user)
-            return UserResponse.from_orm(current_user)
+            return UserResponse.model_validate(current_user)
     except Exception as e:
         logger.exception(f"Ошибка при обновлении информации пользователя: {e}")
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -172,12 +178,14 @@ async def update_user_info(user_update: UserUpdate, current_user: UserModel = De
 
 
 @router.get("/get_tokens")
-async def get_tokens(access_token: str = Cookie(None), refresh_token: str = Cookie(None)):
-    return {"access_token":access_token, "refresh_token":refresh_token}
+@limiter.limit("2/minute")
+async def get_tokens(request: Request, access_token: str = Cookie(None), refresh_token: str = Cookie(None)):
+    return {"access_token": access_token, "refresh_token": refresh_token}
 
 
 @router.post("/refresh/")
-async def refresh_token_endpoint(refresh_token: str = Cookie(None), db: AsyncSession = Depends(get_db),
+@limiter.limit("2/minute")
+async def refresh_token_endpoint(request: Request, refresh_token: str = Cookie(None), db: AsyncSession = Depends(get_db),
                                  response: Response = Response()):
     """Обновление access token с использованием refresh token"""
     try:
@@ -192,7 +200,7 @@ async def refresh_token_endpoint(refresh_token: str = Cookie(None), db: AsyncSes
         user = await db.scalar(select(User).where(User.id == user_id))
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-        access_token = create_access_token({"sub":user.username, "user_id": user.id})
+        access_token = create_access_token({"sub": user.username, "user_id": user.id})
 
         new_refresh_token = await create_refresh_token(user, db)
 

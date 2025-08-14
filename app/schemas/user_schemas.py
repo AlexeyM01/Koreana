@@ -5,7 +5,7 @@ app/schemas/user_schemas.py
 from datetime import datetime
 from typing import Optional
 
-from pydantic import EmailStr, BaseModel
+from pydantic import EmailStr, BaseModel, ConfigDict, Field
 
 
 class UserBase(BaseModel):
@@ -13,10 +13,14 @@ class UserBase(BaseModel):
     username: str
     email: EmailStr
 
+    model_config = ConfigDict(from_attributes=True)
+
 
 class UserCreate(UserBase):
     """Модель для создания пользователя на основе класса UserBase."""
     password: str
+
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserUpdate(UserBase):
@@ -25,18 +29,16 @@ class UserUpdate(UserBase):
     additional_info: Optional[str] = None
     role_id: int
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 
 class UserResponse(UserBase):
     """Модель для ответа с информацией о пользователе на основе класса UserBase."""
     id: int
     role_id: int
-    registered_at: datetime
+    registered_at: datetime = Field(default_factory=datetime.utcnow)
     is_active: bool = True
     is_superuser: bool = False
     is_verified: bool = False
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
