@@ -5,7 +5,6 @@ main.py
 import logging
 from fastapi import FastAPI, WebSocket, Depends, Request, status
 from fastapi.exceptions import RequestValidationError
-from fastapi.middleware import Middleware
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,7 +14,7 @@ from app.core.database import init_db, get_db
 from app.api.auth import router as auth_router
 from app.api.translate import router as translate_router
 from app.core.logger import configure_logging
-from app.services.role_service import router as role_router
+from app.api.roles import router as role_router
 from app.core.rate_limiter import limiter, init_rate_limiter
 
 configure_logging()

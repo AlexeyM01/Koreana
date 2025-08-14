@@ -14,7 +14,6 @@ from app.utils.permissions import permission_dependency
 from app.core.rate_limiter import limiter
 
 router = APIRouter(prefix="/roles")
-# TODO Разделить логику от бизнес-задач
 
 logger = logging.getLogger(__name__)
 

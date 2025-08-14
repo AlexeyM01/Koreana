@@ -9,12 +9,6 @@ async def get_user(db: AsyncSession, username: str):
     """
     Получает пользователя по имени пользователя из базы данных.
 
-    Args:
-        db (AsyncSession): Асинхронная сессия базы данных.
-        username (str): Имя пользователя для поиска.
-
-    Returns:
-        User: Объект пользователя, если найден, иначе None.
     """
     # Не удалять импорт, возможна ошибка: ImportError: cannot import name 'User' from partially initialized module
     # 'models' (most likely due to a circular import)
