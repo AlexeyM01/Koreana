@@ -27,3 +27,4 @@ venv/
 # Miscellaneous
 *.log
 *.pot
+/logs/
