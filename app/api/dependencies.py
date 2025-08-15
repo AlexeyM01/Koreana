@@ -25,12 +25,15 @@ async def get_current_user(request: Request, token: str = Depends(oauth2_scheme)
         credentials = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
         username = credentials.get("sub")
         if username is None:
+            logger.warning("Не удалось извлечь имя пользователя из токена")
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Учетные данные недействительны")
 
         user = await get_user(db, username)
         if user is None:
+            logger.warning(f"Пользователь не найден: {username}")
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
                                 detail="Недействительные учетные данные аутентификации")
+        logger.debug(f"Пользователь успешно получен из токена: {username}")
         return user
 
     except jwt.ExpiredSignatureError as e:

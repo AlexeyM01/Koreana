@@ -41,6 +41,8 @@ def translate(request: Request, text: str | List[str],
         response.raise_for_status()
         data = response.json()
         translated_texts = [item["text"] for item in data["translations"]]
+        logger.debug(
+            f"Текст успешно переведен. Исходный язык: {source_language_code}, целевой язык: {target_language_code}")
         return translated_texts
     except requests.exceptions.RequestException as e:
         logger.error(f"Ошибка при обращении к API перевода: {e}")

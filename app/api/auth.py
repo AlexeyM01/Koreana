@@ -85,6 +85,8 @@ async def register(request: Request, user: UserCreate, db: AsyncSession = Depend
         async with db.begin():
             existing_user = await get_user(db, user.username)
             if existing_user:
+                logger.warning(f"Ошибка при регистрации пользователя: Пользователь с таким никнеймом уже "
+                                 f"зарегистирирован")
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                     detail="Пользователь с таким никнеймом уже зарегистирирован")
 
@@ -117,6 +119,7 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
     try:
         user = await get_user(db, form_data.username)
         if not user or not pwd_context.verify(form_data.password, user.hashed_password):
+            logger.warning(f"Ошибка при аутентификации пользователя: Неверное имя пользователя или пароль.")
             raise HTTPException(status_code=401, detail="Неверное имя пользователя или пароль.")
 
         access_token = create_access_token({"sub": user.username})
@@ -161,6 +164,7 @@ async def update_user_info(request: Request, user_update: UserUpdate,
         async with db.begin():
             existing_user = await get_user(db, user_update.username)
             if existing_user and existing_user.id != current_user.id:
+                logger.warning(f"Ошибка при обновлении информации пользователя: Пользователя не существует")
                 raise HTTPException(status_code=400, detail="Имя пользователя уже зарегистрировано")
 
             current_user.username = user_update.username
@@ -190,15 +194,18 @@ async def refresh_token_endpoint(request: Request, refresh_token: str = Cookie(N
     """Обновление access token с использованием refresh token"""
     try:
         if not refresh_token:
+            logger.warning(f"Ошибка при обновлении токена: нет токена")
             raise HTTPException(status_code=400, detail="Refresh token is missing")
 
         refresh_token_record = await verify_refresh_token(db, refresh_token)
         if not refresh_token_record:
+            logger.warning(f"Ошибка при обновлении токена: Токен не действителен")
             raise HTTPException(status_code=401, detail="Invalid or expired refresh token")
 
         user_id = refresh_token_record.user_id  # Получаем пользователя из refresh token
         user = await db.scalar(select(User).where(User.id == user_id))
         if not user:
+            logger.warning(f"Ошибка при обновлении токена: Пользователя не существует")
             raise HTTPException(status_code=404, detail="User not found")
         access_token = create_access_token({"sub": user.username, "user_id": user.id})
 

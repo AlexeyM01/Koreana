@@ -1,5 +1,5 @@
 """
-app/services/role_services.py
+app/api/roles.py
 
 """
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -28,8 +28,10 @@ async def create_role(request: Request, role: RoleCreate, db: AsyncSession = Dep
         db.add(db_role)
         await db.commit()
         await db.refresh(db_role)
+        logger.info(f"Создана новая роль: {db_role.name}")
         return RoleResponse.model_validate(db_role)
     except Exception as e:
+        logger.exception(f"Ошибка при создании роли: {e}")
         raise HTTPException(status_code=500, detail=f"Произошла ошибка {e}")
 
 
@@ -43,8 +45,9 @@ async def read_role(request: Request, role_id: int, db: AsyncSession = Depends(g
         result = await db.execute(select(RoleModel).where(RoleModel.id == role_id))
         role = result.scalars().first()
         if role is None:
-            logger.exception(f"Ошибка при чтении роли: Роли не существует")
+            logger.warning(f"Ошибка при чтении роли: Роль с ID {role_id} не найдена")
             raise HTTPException(status_code=404, detail="Роль не найдена")
+        logger.debug(f"Роль успешно прочитана: {role.name}, ID: {role_id}")
         return RoleResponse.model_validate(role)
     except Exception as e:
         logger.exception(f"Ошибка при чтении роли: {e}")
@@ -59,17 +62,20 @@ async def update_role(request: Request, role_id: int, role: RoleUpdate, db: Asyn
     try:
         from sqlalchemy import select
         result = await db.execute(select(RoleModel).where(RoleModel.id == role_id))
-        db_role = result.scalars().first()
-        if db_role is None:
+        role = result.scalars().first()
+        if role is None:
+            logger.warning(f"Ошибка при обновлении роли: Роль с ID {role_id} не найдена")
             raise HTTPException(status_code=404, detail="Роль не найдена")
 
         for key, value in role.model_dump(exclude_unset=True).items():
-            setattr(db_role, key, value)
+            setattr(role, key, value)
 
         await db.commit()
-        await db.refresh(db_role)
-        return RoleResponse.model_validate(db_role)
+        await db.refresh(role)
+        logger.info(f"Роль успешно обновлена: {role.name}, ID: {role_id}")
+        return RoleResponse.model_validate(role)
     except Exception as e:
+        logger.exception(f"Ошибка при обновлении роли: {e}")
         raise HTTPException(status_code=500, detail=f"Произошла ошибка {e}")
 
 
@@ -84,9 +90,12 @@ async def delete_role(request: Request, role_id: int, db: AsyncSession = Depends
         db_role = result.scalars().first()
 
         if db_role is None:
+            logger.warning(f"Ошибка при удалении роли: Роль с ID {role_id} не найдена")
             raise HTTPException(status_code=404, detail="Роль не найдена")
         await db.delete(db_role)
         await db.commit()
+        logger.info(f"Роль успешно удалена: {db_role.name}, ID: {role_id}")
         return RoleResponse.model_validate(db_role)
     except Exception as e:
+        logger.exception(f"Ошибка при удалении роли: {e}")
         raise HTTPException(status_code=500, detail=f"Произошла ошибка {e}")
