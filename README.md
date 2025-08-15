@@ -2,37 +2,27 @@
 
 ## Назначение проекта
 
-Проект предназначен для реализации системы регистрации и аутентификации пользователей с использованием JWT (JSON Web Tokens). Он предоставляет RESTful API для управления пользователями, включая возможность регистрации, авторизации и обновления информации о пользователях. Проект также использует кэширование с помощью Redis для оптимизации работы с токенами и задачами.
+Это FastAPI проект, реализующий API для аутентификации, управления ролями, перевода текста. Проект использует асинхронную базу данных PostgreSQL, JWT для аутентификации и Redis для ограничения скорости (rate limiting).
 
-## Системные требования
+## Технологии
 
-- **Язык**: Python 3.8 или выше
-- **Ресурсы**:
-  - CPU: 1 GHz или выше
-  - RAM: 2 GB или выше
-  - Дисковое пространство: 100 MB свободно
-- **Системные зависимости**:
-  - База данных: PostgreSQL 12 или выше
-  - Redis 6 или выше
-- **Необходимые расширения**:
-  - `uvicorn`
-  - `fastapi`
-  - `sqlalchemy`
-  - `passlib`
-  - `python-jose`
-  - `pydantic`
-  - `asyncpg`
-  - `aiocache`
-  - `redis`
-  
-  Установить зависимости можно с помощью `pip install -r requirements.txt`.
+•   FastAPI
+•   Python 3.11+
+•   SQLAlchemy (Async)
+•   PostgreSQL
+•   JWT
+•   Redis
+•   Pydantic
+•   Passlib
+•   requests
+•   python-dotenv
 
 ## Шаги по установке, сборке, запуску
 
 1. **Клонирование репозитория**:
    ```bash
-   git clone https://github.com/username/project.git
-   cd project
+   git clone https://github.com/AlexeyM01/Koreana.git
+   cd Koreana
    ```
 
 2. **Создание и активация виртуального окружения**:
@@ -60,6 +50,9 @@ DB_PASSWORD=
 DB_HOST=
 DB_PORT=
 REDIS_URL=
+
+YANDEX_TRANSLATE_API_KEY=
+YANDEX_TRANSLATE_FOLDER_ID=
 ```
 
 5. **Инициализация базы данных: Убедитесь, что PostgreSQL и Redis запущены, затем инициализируйте базу данных, выполнив команду**:
@@ -69,9 +62,25 @@ python -m main
 
 6. **Запуск приложения: Запустите приложение с помощью Uvicorn**:
 ```bash
-uvicorn main:app --host 127.0.0.1 --port 8000 --reload
+uvicorn main:app --host 127.0.0.1 --port 8000 --reload --log-level info
 ```
 
 7. **Доступ к API**: После запуска приложение будет доступно по адресу http://localhost:8000. 
 Перейдите по этому адресу для доступа к автоматически сгенерированной документации API (Swagger UI):
 http://localhost:8000/docs
+
+8. Эндпоинты API
+
+•  POST /registration/: Регистрация нового пользователя.
+•  POST /login/: Аутентификация пользователя и получение JWT токенов.
+•  GET /me: Получение информации о текущем пользователе (требуется аутентификация).
+•  PUT /me: Обновление информации о текущем пользователе (требуется аутентификация).
+•  POST /refresh/: Обновление access token с использованием refresh token.
+•  POST /translate/: Перевод текста с использованием Yandex Translate.
+•  GET /db-status: Проверка соединения с базой данных.
+•  GET /ws/tasks/: WebSocket endpoint для двусторонней связи.
+
+•  POST /roles/: Создание новой роли (требуется аутентификация и права "manage_users").
+•  GET /roles/{role_id}: Получение информации о роли по ID (требуется аутентификация и права "manage_users").
+•  PUT /roles/{role_id}: Обновление информации о роли по ID (требуется аутентификация и права "manage_users").
+•  DELETE /roles/{role_id}: Удаление роли по ID (требуется аутентификация и права "manage_users").
