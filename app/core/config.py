@@ -41,6 +41,9 @@ class Settings(BaseSettings):
     db_host: str = os.getenv("DB_HOST", "db")
     db_port: int = int(os.getenv("DB_PORT", 5432))
 
+    redis_host: str = os.getenv("REDIS_HOST", "redis://localhost")
+    redis_port: int = int(os.getenv("REDIS_PORT", 6379))
+
     yandex_translate_api_key: str = os.getenv("YANDEX_TRANSLATE_API_KEY")
     yandex_translate_folder_id: str = os.getenv("YANDEX_TRANSLATE_FOLDER_ID")
 

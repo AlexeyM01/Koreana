@@ -1,6 +1,6 @@
 fastapi==0.116.1
 passlib==1.7.4
-pydantic==2.11.7
+pydantic[email]
 pydantic_settings==2.10.1
 PyJWT==2.10.1
 pytest==8.4.1
@@ -9,3 +9,8 @@ Requests==2.32.4
 slowapi==0.1.9
 SQLAlchemy==2.0.43
 starlette==0.47.2
+uvicorn[standard]
+redis
+asyncpg
+python-multipart
+logging

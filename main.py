@@ -10,6 +10,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import HTMLResponse, JSONResponse
+
+from app.core.config import settings
 from app.models.models import User as UserModel
 from app.core.database import init_db, get_db
 from app.api.auth import router as auth_router
@@ -64,12 +66,16 @@ async def startup_event():
 async def check_db_connection(request: Request, db: AsyncSession = Depends(get_db)):
     """Функция-проверка соединения с базой данных"""
     try:
+        logger.info("Попытка выполнения запроса к базе данных...")
         await db.execute(select(UserModel).limit(1))
         logger.info("Соединение с базой данных успешно проверено.")
+        logger.info(f"Значение settings.db_host: {settings.db_host}")
         return HTMLResponse(status_code=200, content="Соединение с базой данных успешно")
     except Exception as e:
         logger.error(f"Ошибка соединения с базой данных: {e}")
         return HTMLResponse(status_code=500, content=f"Соединение с базой данных разорвано. Произошла ошибка {e}")
+    finally:
+        logger.info("Завершение работы эндпоинта /db-status")
 
 
 @app.websocket("/ws/tasks/")
