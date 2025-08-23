@@ -47,6 +47,8 @@ class Settings(BaseSettings):
     yandex_translate_api_key: str = os.getenv("YANDEX_TRANSLATE_API_KEY")
     yandex_translate_folder_id: str = os.getenv("YANDEX_TRANSLATE_FOLDER_ID")
 
+    debug: bool = os.getenv("DEBUG", "False").lower() == "true"
+
     @property
     def database_url(self) -> str:
         """

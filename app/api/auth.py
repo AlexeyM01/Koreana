@@ -86,7 +86,7 @@ async def register(request: Request, user: UserCreate, db: AsyncSession = Depend
             existing_user = await get_user(db, user.username)
             if existing_user:
                 logger.warning(f"Ошибка при регистрации пользователя: Пользователь с таким никнеймом уже "
-                                 f"зарегистирирован")
+                               f"зарегистирирован")
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                     detail="Пользователь с таким никнеймом уже зарегистирирован")
 
@@ -129,7 +129,7 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
             httponly=True,
             max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
             samesite="lax",
-            secure=True
+            secure=not settings.debug
         )
 
         refresh_token = await create_refresh_token(user, db)
@@ -139,7 +139,7 @@ async def login(request: Request, form_data: OAuth2PasswordRequestForm = Depends
             httponly=True,
             max_age=REFRESH_TOKEN_EXPIRE_MINUTES * 60,
             samesite="lax",
-            secure=True
+            secure=not settings.debug
         )
         return {"access_token": access_token, "token_type": "bearer"}
     except Exception as e:
@@ -158,7 +158,7 @@ async def read_current_user(request: Request, current_user: UserModel = Depends(
 @router.put("/me", summary="Обновление информации пользователя")
 @limiter.limit("2/minute")
 async def update_user_info(request: Request, user_update: UserUpdate,
-                           current_user: UserModel = Depends(get_current_user),db: AsyncSession = Depends(get_db)):
+                           current_user: UserModel = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     """Обновляет информацию текущего пользователя"""
     try:
         async with db.begin():
@@ -189,7 +189,8 @@ async def get_tokens(request: Request, access_token: str = Cookie(None), refresh
 
 @router.post("/refresh/")
 @limiter.limit("2/minute")
-async def refresh_token_endpoint(request: Request, refresh_token: str = Cookie(None), db: AsyncSession = Depends(get_db),
+async def refresh_token_endpoint(request: Request, refresh_token: str = Cookie(None),
+                                 db: AsyncSession = Depends(get_db),
                                  response: Response = Response()):
     """Обновление access token с использованием refresh token"""
     try:
@@ -217,7 +218,7 @@ async def refresh_token_endpoint(request: Request, refresh_token: str = Cookie(N
             httponly=True,
             max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
             samesite="lax",
-            secure=True,
+            secure=not settings.debug,
         )
 
         response.set_cookie(
@@ -226,7 +227,7 @@ async def refresh_token_endpoint(request: Request, refresh_token: str = Cookie(N
             httponly=True,
             max_age=REFRESH_TOKEN_EXPIRE_MINUTES * 60,
             samesite="lax",
-            secure=True,
+            secure=not settings.debug,
         )
 
         return {"access_token": access_token, "token_type": "bearer"}
