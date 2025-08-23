@@ -33,6 +33,7 @@ services:
       REFRESH_TOKEN_EXPIRE_MINUTES: ${REFRESH_TOKEN_EXPIRE_MINUTES}
       YANDEX_TRANSLATE_API_KEY: ${YANDEX_TRANSLATE_API_KEY}
       YANDEX_TRANSLATE_FOLDER_ID: ${YANDEX_TRANSLATE_FOLDER_ID}
+      DEBUG: ${DEBUG:-False}
 #      DATABASE_URL: postgresql://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
     depends_on:
       db:
@@ -43,7 +44,7 @@ services:
     env_file:
       - .env
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/db-status"]
+      test: ["CMD", "bash", "-c", "curl -f http://localhost:8000/db-status && redis-cli ping"]
       interval: 10s
       timeout: 5s
       retries: 5

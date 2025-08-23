@@ -13,4 +13,3 @@ uvicorn[standard]
 redis
 asyncpg
 python-multipart
-logging
