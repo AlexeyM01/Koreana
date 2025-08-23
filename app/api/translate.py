@@ -27,9 +27,14 @@ async def translate(request: Request, text: str | List[str],
             text = [text]
 
         cache_key = f"translate:{source_language_code}:{target_language_code}:{text}"
-        cached_result = await redis_client.get(cache_key)
+        try:
+            cached_result = await redis_client.get(cache_key)
+        except redis.exceptions.ConnectionError as e:
+            logger.error(f"Не удалось подключиться к Redis: {e}")
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                detail="Не удалось подключиться к Redis") from e
         if cached_result:
-            logger.debug(f"Translation found in cache for key: {cache_key}")
+            logger.debug(f"Перевод найден в кэше для ключа: {cache_key}")
             return json.loads(cached_result)
 
         body = {
@@ -54,8 +59,13 @@ async def translate(request: Request, text: str | List[str],
         translated_texts = [item["text"] for item in data["translations"]]
         logger.debug(
             f"Текст успешно переведен. Исходный язык: {source_language_code}, целевой язык: {target_language_code}")
-        await redis_client.set(cache_key, json.dumps(translated_texts), ex=60 * 60 * 24)  # Храним в кэше 24 часа
-        logger.debug(f"Перевод сохранен в кэше для ключа: {cache_key}")
+        try:
+            await redis_client.set(cache_key, json.dumps(translated_texts), ex=60 * 60 * 24)  # Храним в кэше 24 часа
+            logger.debug(f"Перевод сохранен в кэше для ключа: {cache_key}")
+        except redis.exceptions.ConnectionError as e:
+            logger.error(f"Failed to connect to Redis: {e}")
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                                detail="Failed to connect to Redis") from e
         return translated_texts
     except requests.exceptions.RequestException as e:
         logger.error(f"Ошибка при обращении к API перевода: {e}")
