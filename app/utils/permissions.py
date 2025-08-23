@@ -3,7 +3,7 @@ app/utils/permissions.py
 """
 import logging
 
-from fastapi import Depends, HTTPException, Request
+from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,15 +22,16 @@ def permission_dependency(permission: str):
     async def check_permission_dependency(request: Request, current_user: UserModel = Depends(get_current_user),
                                           db: AsyncSession = Depends(get_db)):
         # Получаем роль пользователя по его role_id
-        query = await db.execute(select(Role).where(Role.id == current_user.role_id))
-        result = query.scalars().first()
+        role = await db.scalar(select(Role).where(Role.id == current_user.role_id))
 
-        if not result:
-            raise HTTPException(status_code=403, detail="Роль не найдена")
+        if not role:
+            logger.warning(f"Ошибка проверки разрешений: Роль не найдена для пользователя {current_user.username}")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Роль не найдена")
         logger.warning(f"Ошибка проверки разрешений: Роль не найдена для пользователя {current_user.username}")
-        if permission not in result.permissions:
+
+        if permission not in role.permissions:
             logger.warning(f"Ошибка проверки разрешений: У пользователя {current_user.username} нет прав {permission}")
-            raise HTTPException(status_code=403, detail="Недостаточно прав")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Недостаточно прав")
         logger.debug(f"Проверка разрешений успешно пройдена для пользователя {current_user.username},"
                      f"требуется разрешение: {permission}")
         return True

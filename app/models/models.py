@@ -26,6 +26,7 @@ class User(Base):
     additional_info: Optional[str] = Column(String, nullable=True)
 
     refresh_tokens = relationship("RefreshToken", back_populates="user")
+    role = relationship("Role", back_populates="users")
 
 
 class Role(Base):
@@ -34,6 +35,8 @@ class Role(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String, unique=True)
     permissions = Column(ARRAY(String), nullable=True)
+
+    users = relationship("User", back_populates="role")
     '''
     (1, 'STUDENT'),
     (2, 'TEACHER'),
